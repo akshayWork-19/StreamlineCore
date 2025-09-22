@@ -1,4 +1,4 @@
-# CHAI AUR BACKEND SERIES
+# Backend SERIES
 
 This is a backend series on backend with JS
 
