@@ -41,7 +41,7 @@ const userSchema = new Schema({
     type: String,
     required: [true, "Password is required!!"],
   },
-  refreshTokens: {
+  refreshToken: {
     type: String
   }
 
@@ -69,5 +69,4 @@ userSchema.methods.generateRefreshToken = function () {
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRY });
 }
-const User = new model("User", userSchema);
-export default User;
+export const User = new model("User", userSchema);
