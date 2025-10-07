@@ -4,6 +4,23 @@ import { User } from '../models/user.model.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 
+import jwt from "jsonwebtoken";
+
+const generateAccessAndRefreshToken = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
+  } catch (error) {
+    throw new ApiError(500, error.message);
+  }
+}
+
+
 
 const registerUser = asyncHandler(async (req, res) => {
   //get user details from frontend
@@ -66,6 +83,109 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
+
+const loginUser = asyncHandler(async (req, res) => {
+  //email ,password 
+  //validation hit - with password help we'll check ki passwords saved in our db user regarding the email is same or not - if same then get user through else show error 
+  //after user is checked create refresh,access token save refreshToken in db,access token to user or attach it with res object so that in later requests we can take that accesstoken value from res object and verify the user without actually hitting db verification calls
+  const { username, email, password } = req.body;
+  if (!username && !email) {
+    throw new ApiError(400, "Username or Email is required!")
+  }
+
+  const user = await User.findOne({ $or: [{ username }, { email }] });
+  if (!user) {
+    throw new ApiError(400, "User doesn't exists");
+  }
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Incorrect Password!!");
+  }
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+
+  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+  const options = {
+    httpOnly: true,
+    secure: true
+  }
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(200,
+        {
+          user: loggedInUser
+          , accessToken
+          , refreshToken
+        },
+        "user is logged-In successfullly!"
+      )
+    )
+})
+
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: undefined
+      }
+    },
+    {
+      new: true
+    }
+  )
+
+  const options = {
+    httpOnly: true,
+    secure: true
+  }
+
+  return res.status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, "User logged-out successfully"))
+})
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  try {
+    const incomingRefreshToken = req.cookies.refreshToken || req.body().refreshToken;
+
+    if (!incomingRefreshToken) {
+      throw new ApiError(401, "Unauthorized Request!!");
+    }
+
+    const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    const user = await User.findById(decodedToken?._id);
+    if (!user) {
+      throw new ApiError(401, "Unauthorized Request!!");
+    }
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "Invalid refreshToken or Expired!")
+    }
+    const options = {
+      httpOnly: true,
+      secure: true
+    };
+
+    const { newRefreshToken, accessToken } = await generateAccessAndRefreshToken(user._id);
+    return res
+      .status(200)
+      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", accessToken, options)
+      .json(new ApiResponse(200, { accessToken, refreshToken: newRefreshToken }, "Access Tokens refreshed "))
+  } catch (error) {
+    throw new ApiError(500, "Internal Server Error ::error", error?.message || "Invalid Refresh Token")
+  }
+})
+
 export {
-  registerUser
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken
 }
