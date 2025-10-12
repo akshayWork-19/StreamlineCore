@@ -21,10 +21,34 @@ const uploadOnCloudinary = async (localFilePath) => {
     return response;
 
   } catch (error) {
-    fs.unlinkSync(localFilePath);//remove the locally saved temporary file as upload failed!.
+    fs.unlinkSync(localFilePath);//remove the locally saved temporary file as upload failed!.;
     return null;
   }
 }
 
+//
+// http://res.cloudinary.com/youtubebackend1/image/upload/v1759849949/vrdou5qjhu3cy8wccy8n.jpg
 
-export { uploadOnCloudinary };
+const deleteAssest = async (fileToDeleteCompleteUrl) => {
+  try {
+    //extract the public id of file from fileToDeleteCompleteUrl,because using publicId we can delete otherwise maybe not
+    const uploadIndex = fileToDeleteCompleteUrl.indexOf('/upload/');
+    if (uploadIndex == -1) {
+      throw new ApiError(401, "File doesn't exists/Invalid Url :: deleteAsset");
+      return null;
+    }
+    const pathWithVersion = fileToDeleteCompleteUrl.substring(uploadIndex + 8);
+    const pathSegments = pathWithVersion.split('/');
+    const publicIdSegment = pathSegments[1];
+    const publicId = publicIdSegment?.split('.')[0];
+    const response = await cloudinary.uploader.destroy(publicId);
+    return response;
+  } catch (error) {
+    return null;
+  }
+
+
+}
+
+
+export { uploadOnCloudinary, deleteAssest };

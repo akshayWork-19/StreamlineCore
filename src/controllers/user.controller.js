@@ -1,7 +1,7 @@
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { User } from '../models/user.model.js';
-import { uploadOnCloudinary } from '../utils/cloudinary.js';
+import { deleteAssest, uploadOnCloudinary } from '../utils/cloudinary.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 
 import jwt from "jsonwebtoken";
@@ -19,7 +19,7 @@ const generateAccessAndRefreshToken = async (userId) => {
   }
 }
 
-
+// #region register
 
 const registerUser = asyncHandler(async (req, res) => {
   //get user details from frontend
@@ -82,6 +82,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 })
 
+// #region login
 
 const loginUser = asyncHandler(async (req, res) => {
   //email ,password 
@@ -125,6 +126,8 @@ const loginUser = asyncHandler(async (req, res) => {
     )
 })
 
+// #region logOutUser
+
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
@@ -148,6 +151,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, "User logged-out successfully"))
 })
+
+// #region refreshAccessTokens
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
@@ -182,10 +187,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 })
 
-const updateUser = () => {
-
-}
-
+//#region changeCurrentPassword
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const userId = req.user?._id;
@@ -205,6 +207,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Password updated Successfully!"));
 })
 
+// #region getCurrentUser
 const getCurrentUser = asyncHandler(async (req, res) => {
   const user = req.user;
   if (!user) {
@@ -214,6 +217,8 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, req.user, "Current user fetched Successfully!"));
 })
+
+// #region updateAccountDetails
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
   const { fullName, email } = req.body;
@@ -234,11 +239,14 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedUser, "Accounts details updated Successfully!"))
 });
 
+//#region updateUserAvatar
+
 const updateUserAvatar = asyncHandler(async (req, res) => {
   const avatarLocalPath = req.file?.path;
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file missing !");
   }
+
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   if (!avatar) {
     throw new ApiError(400, "Avatar File Upload issue :: updateUserAvatar !");
@@ -248,7 +256,6 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   if (!userId) {
     throw new ApiError(400, "UserId error :: getting user inside update useravatar !");
   }
-
   const updateUser = await User.findByIdAndUpdate(userId, {
     $set: {
       avatar: avatar?.url
@@ -257,18 +264,32 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     new: true
   }).select("-password ");
 
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError("Log-in first to complete upload!!");
+  }
+  const oldAvatarUrl = user.avatar;
+  const fileDeleted = await deleteAssest(oldAvatarUrl);
+  if (fileDeleted == null) {
+    throw new ApiError(500, "Error while deleting Old Asset :: Avatar");
+  } else {
+    console.log("Old avatar is deleted Successfully!")
+  }
+
   return res
     .status(200)
     .json(new ApiResponse(200, updateUser, "User avatar updated successfully"));
 
 })
 
+// #region updateUserCoverImage
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
   const coverImageLocalPath = req.file?.path;
   if (!coverImageLocalPath) {
     throw new ApiError(400, "CoverImage file missing !");
   }
+
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
   if (!coverImage) {
     throw new ApiError(400, "Cover Image File Upload issue :: updateUserCoverImage !");
@@ -287,10 +308,146 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     new: true
   }).select("-password ")
 
+
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError("Log-in first to complete upload!!");
+  }
+  const oldCoverImageUrl = user.coverImage;
+  const fileDeleted = await deleteAssest(oldCoverImageUrl);
+  if (fileDeleted == null) {
+    throw new ApiError(500, "Error while deleting Old Asset :: coverImage");
+  } else {
+    console.log("Old avatar is deleted Successfully!");
+  }
+
   return res
     .status(200)
     .json(new ApiResponse(200, updateUser, "User coverImage updated successfully"));
+})
 
+//#region getUserChannelProfile
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is missing :: channelProfile");
+  }
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase()
+      }
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers"
+      }
+    },
+    {
+      $lookup: {
+        from: "channels",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo"
+      }
+    },
+    {
+      $addFields: {
+        subcribersCount: {
+          $size: "$subscribers"
+        },
+        channelSubscribedToCount: {
+          $size: "$subscribedTo"
+        },
+        isSubscribedTo: {
+          $cond: {
+            if: { $in: [req.user._id, "$subscribers.subscriber"] },
+            then: true,
+            else: false
+          }
+        }
+      }
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        email: 1,
+        avatar: 1,
+        coverImage: 1,
+        isSubscribedTo: 1,
+        channelSubscribedToCount: 1,
+        subcribersCount: 1
+
+      }
+    }
+  ])
+
+  console.log(channel);
+  if (!channel?.length) {
+    throw new ApiError(400, "Channel Doesn't exist");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, channel[0], "User Details fetched Successfully"))
+
+});
+
+//#region getUserWatchHistory
+const getUserWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        //Without the nested $lookup, the video documents in your watchHistory would only contain the owner's ID, which is not useful for presentation. The nested lookup transforms that ID into a rich profile object.
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    avatar: 1,
+                    username: 1
+                  }
+                }
+              ]
+            },
+          },
+          //we're here editing the datastructure of owner field 
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user[0].watchHistory, "User watch history fetched Successfully"))
 })
 
 export {
@@ -302,5 +459,8 @@ export {
   changeCurrentPassword,
   updateAccountDetails,
   updateUserAvatar,
-  updateUserCoverImage
+  updateUserCoverImage,
+  getUserChannelProfile,
+  getUserWatchHistory
+
 }
