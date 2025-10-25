@@ -5,8 +5,8 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
-A **full-featured backend API** for a **video-sharing and social interaction platform** — similar to YouTube or X (Twitter) — built using **Node.js**, **Express.js**, and **JWT Authentication**.  
-This project includes **modular route design**, **file uploads**, **Appwrite/MongoDB integration**, and **complete CRUD APIs** for users, videos, comments, playlists, likes, and tweets.
+A **full-featured backend API** for a **video-sharing and social interaction platform** — similar to YouTube or X (Twitter) — built using **Node.js**, **Express.js**, **Cloudinary**and **JWT Authentication** .  
+This project includes **modular route design**, **file uploads**, **MongoDB integration**, and **complete CRUD APIs** for users, videos, comments, playlists, likes, and tweets.
 
 ---
 
@@ -36,7 +36,7 @@ This project includes **modular route design**, **file uploads**, **Appwrite/Mon
 | **Runtime**            | Node.js                    | Server-side JavaScript runtime          |
 | **Framework**          | Express.js                 | Fast, minimalist backend framework      |
 | **Authentication**     | JSON Web Token (JWT)       | Secure user authentication              |
-| **Database / Backend** | Appwrite / MongoDB         | Storage for users, videos, and metadata |
+| **Database / Backend** | Cloudinary/ MongoDB        | Storage for users, videos, and metadata |
 | **File Uploads**       | Multer                     | Upload avatars, thumbnails, and videos  |
 | **Middleware**         | Custom (verifyJWT, upload) | Route protection and file handling      |
 
@@ -157,8 +157,9 @@ This project includes **modular route design**, **file uploads**, **Appwrite/Mon
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/mega-media-platform-api.git
-cd mega-media-platform-api
+git clone git@github.com:akshayWork-19/StreamlineCore.git
+cd StreamlineCore
+
 ```
 
 ### 2️⃣ Install Dependencies
