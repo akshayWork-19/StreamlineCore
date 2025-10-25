@@ -1,7 +1,6 @@
 # 🎬 Mega Media Platform API(STREMALINECORE)
 
 ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
-![Appwrite](https://img.shields.io/badge/Appwrite-FF2D20?style=for-the-badge&logo=appwrite&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
