@@ -4,7 +4,7 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
-A **full-featured backend API** for a **video-sharing and social interaction platform** — similar to YouTube or X (Twitter) — built using **Node.js**, **Express.js**, **Cloudinary**and **JWT Authentication** .  
+A **full-featured backend API** for a **video-sharing and social interaction platform** — similar to YouTube or X (Twitter) — built using **Node.js**, **Express.js**, **Cloudinary** and **JWT Authentication** .  
 This project includes **modular route design**, **file uploads**, **MongoDB integration**, and **complete CRUD APIs** for users, videos, comments, playlists, likes, and tweets.
 
 ---
